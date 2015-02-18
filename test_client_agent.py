@@ -12,7 +12,7 @@ print "Client ", client_name, " is connecting to cache agent : ", cache_agent['n
 cache_agent_ip = cache_agent['ip']
 
 ### Get the server to start streaming
-for i in range(1):
+for i in range(5):
 	# Randomly select a video to stream
 	vidNum = 1000
 	video_id = random.randrange(1, vidNum, 1)
