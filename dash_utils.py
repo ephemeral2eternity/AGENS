@@ -5,7 +5,6 @@ import time
 import datetime
 import math
 import json
-import requests
 import random
 from operator import itemgetter
 
