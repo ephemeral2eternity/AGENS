@@ -38,7 +38,10 @@ def averageQoE(srv_qoe_tr):
 		
 	else:
 		## Study chunks in the previous 1 minute
-		for chunk_id in srv_qoe_tr.keys().sort()[-12:]:
+		chunk_ids = sorted(srv_qoe_tr.keys())
+		last_minute_chunk_ids = chunk_ids[-12:]
+		print "Average QoE for chunk ids: ", str(last_minute_chunk_ids)
+		for chunk_id in last_minute_chunk_ids:
 			curSrvNum = curSrvNum + 1
 			mn_QoE += srv_qoe_tr[chunk_id]
 	mn_QoE = mn_QoE / float(curSrvNum)
