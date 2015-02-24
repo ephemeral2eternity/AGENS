@@ -139,7 +139,7 @@ def server_based_client(cache_agent_ip, video_id, method):
 	## ==================================================================================================
 	# trFileName = "./data/" + clientID + "_" + videoName + "_" + str(time.time()) + ".json"
 	## Writer out traces files and upload to google cloud
-	trFileName = "./data/" + client_ID + ".json"
+	trFileName = "./dataQoE/" + client_ID + ".json"
 	with open(trFileName, 'w') as outfile:
 		json.dump(client_tr, outfile, sort_keys = True, indent = 4, ensure_ascii=False)
 	# qoe_tr_filename = "./data/" + client_ID + "_QoE.json"

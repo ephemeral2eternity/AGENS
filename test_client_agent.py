@@ -32,3 +32,13 @@ for i in range(5):
 	waitRandom(1, 100)
 	server_based_client(cache_agent_ip, video_id, method)
 
+	## Testing hop based server selection
+	method = 'hop'
+	waitRandom(1, 100)
+	server_based_client(cache_agent_ip, video_id, method)
+
+	## Testing random server selection
+	method = 'random'
+	waitRandom(1, 100)
+	server_based_client(cache_agent_ip, video_id, method)
+
