@@ -11,6 +11,8 @@ The client agent for AGENS system that can be run in Planetlab nodes.
     * Get the server with the content and with the least server load
     * Get the server with the content and with the least RTT
     * Get the server with the content and with the best QoE
+    * Get the server with the content and with the least hop
+    * Randomly choose the server with the content
   * Basic DASH Streaming Client (Streaming from the server got every 1 minute)
 - Client side controled Server Selection
   * Connect to the closest cache agent (Similar with Server-side controlled server selection)
@@ -20,4 +22,7 @@ The client agent for AGENS system that can be run in Planetlab nodes.
   * DASH streaming with 2 candidate servers
   
 ## Usage
+```
+python test_client_agent.py
+```
 
