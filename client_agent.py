@@ -4,6 +4,7 @@ import time
 import datetime
 import json
 import shutil
+import logging
 from dash_utils import *
 from dash_qoe import *
 from attach_cache_agent import *
@@ -14,6 +15,13 @@ from download_chunk import *
 ### define client_agent method that streams a video using server-side controlled server selection
 def server_based_client(cache_agent_ip, video_id, method):
 	## ==================================================================================================
+	## Client name and info
+	## ==================================================================================================
+	client = str(socket.gethostname())
+	cur_ts = time.strftime("%m%d%H%M")
+	client_ID = client + "_" + cur_ts + "_" + method
+
+	## ==================================================================================================
 	## Get the initial streaming server
 	## ==================================================================================================
 	srv_info = get_srv(cache_agent_ip, video_id, method)
@@ -23,17 +31,17 @@ def server_based_client(cache_agent_ip, video_id, method):
 		selected_srv_ip = srv_info['ip']
 		videoName = srv_info['vidName']
 	else:
-		print "Client streaming failed due to failure in get_srv!!!"
-		return
-
-	
-	## ==================================================================================================
-	## Client name and info
-	## ==================================================================================================
-	client = str(socket.gethostname())
-	cur_ts = time.strftime("%m%d%H%M")
-	client_ID = client + "_" + cur_ts + "_" + method
-
+		logging.info("[" + client_ID + "]Agens client can not get srv_info for video " + str(video_id) + " with method " + method + \
+			" on cache agent " + cache_agent_ip + ". Try again to get the srv_info!!!")
+		srv_info = get_srv(cache_agent_ip, video_id, method)
+		if srv_info:
+			selected_srv = srv_info['srv']
+			selected_srv_ip = srv_info['ip']
+			videoName = srv_info['vidName']
+		else:
+			logging.info("[" + client_ID + "]Agens client can not get srv_info for video " + str(video_id) + " with method " + method + \
+			" on cache agent " + cache_agent_ip + " twice. Stop the streaming!!!")
+			return
 
 	## ==================================================================================================
 	## Parse the mpd file for the streaming video
@@ -82,6 +90,7 @@ def server_based_client(cache_agent_ip, video_id, method):
 	client_tr = {}
 	srv_qoe_tr = {}
 	alpha = 0.5
+	error_num = 0
 
 	## ==================================================================================================
 	# Start streaming the video
@@ -91,6 +100,17 @@ def server_based_client(cache_agent_ip, video_id, method):
 		vidChunk = reps[nextRep]['name'].replace('$Number$', str(chunkNext))
 		loadTS = time.time();
 		vchunk_sz = download_chunk(selected_srv_ip, videoName, vidChunk)
+		
+		## Try 10 times to download the chunk
+		while vchunk_sz == 0 and error_num < 10:
+			# Try to download again the chunk
+			vchunk_sz = download_chunk(selected_srv_ip, videoName, vidChunk)
+
+		if vchunk_sz == 0:
+			logging.info("[" + client_ID + "]Agens client can not download chunks video " + videoName + " from server " + selected_srv + \
+			" 10 times. Stop and exit the streaming!!!")
+			return
+
 		curTS = time.time()
 		rsp_time = curTS - loadTS
 		est_bw = vchunk_sz * 8 / (curTS - loadTS)

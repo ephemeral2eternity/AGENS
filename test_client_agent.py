@@ -4,6 +4,7 @@
 import random
 from client_agent import *
 from test_utils import *
+import logging
 
 ### Get client name and attache to the closest cache agent
 client_name = getMyName()
@@ -11,11 +12,22 @@ cache_agent = attach_cache_agent()
 print "Client ", client_name, " is connecting to cache agent : ", cache_agent['name']
 cache_agent_ip = cache_agent['ip']
 
+### Report cache agent to the centralized controller cmu-agens
+update_cache_agent(client_name, cache_agent['name'])
+
+## Config logging level
+logging.basicConfig(filename='agens_' + client_name + '.log', level=logging.INFO)
+
+## Get the CDF of Zipf distribution
+N = 1000
+p = 0.1
+zipf_cdf = getZipfCDF(N, p)
+
 ### Get the server to start streaming
-for i in range(5):
+for i in range(1):
 	# Randomly select a video to stream
 	vidNum = 1000
-	video_id = random.randrange(1, vidNum, 1)
+	video_id = weighted_choice(zipf_cdf)
 
 	## Testing QoE based server selection
 	method = 'qoe'
