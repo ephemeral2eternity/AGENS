@@ -89,7 +89,7 @@ def server_based_client(cache_agent_ip, video_id, method):
 	## Traces to write out
 	client_tr = {}
 	srv_qoe_tr = {}
-	alpha = 0.5
+	alpha = 0.1
 	error_num = 0
 
 	## ==================================================================================================
