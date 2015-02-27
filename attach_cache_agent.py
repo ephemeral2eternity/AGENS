@@ -3,6 +3,8 @@ import time
 import random
 import sys
 import json
+import logging
+import sys
 import operator
 import urllib2, socket
 from ping import *
@@ -41,6 +43,26 @@ def pingSrvs(candidates):
 		print "Ping ", srv, " : ", str(srvRtts[srv]), " ms"
 	return srvRtts
 
+# ================================================================================
+# Check if cache agent is alive
+# @input : cache_agent_ip ---- the ip address of cache agent to test
+# @return : True --- alive
+#			False --- dead
+# ================================================================================
+def is_alive(cache_agent_ip):
+	url = 'http://%s:8615/video/getSrv?vidID=5&method=qoe'%cache_agent_ip
+	print url
+	try:
+		rsp = urllib2.urlopen(url)
+		rsp_headers = rsp.info()
+		srv_info = json.loads(rsp_headers['Params'])
+		if srv_info:
+			return True
+		else:
+			return False
+	except:
+		return False
+
 
 # ================================================================================
 # Attach the closest cache agent to the client.
@@ -50,10 +72,24 @@ def pingSrvs(candidates):
 # ================================================================================
 def attach_cache_agent():
 	cache_agent_obj = {}
+
+	## Try several times before exit
 	all_cache_agents = get_cache_agents()
+	trial_num = 0
+	while not all_cache_agents and trial_num < 20:
+		all_cache_agents = get_cache_agents()
+
+	if not all_cache_agents:
+		logging.info("[" + client_name + "]Agens client can not connect to any cache agent 20 times. The client might lose connection!!!")
+		sys.exit()
+
 	srvRtts = pingSrvs(all_cache_agents)
 	sorted_srv_rtts = sorted(srvRtts.items(), key=operator.itemgetter(1))
-	cache_agent = sorted_srv_rtts[0][0]
-	cache_agent_obj['name'] = cache_agent
-	cache_agent_obj['ip'] = all_cache_agents[cache_agent]
+	for srv_rtt in sorted_srv_rtts:
+		cache_agent = srv_rtt[0]
+		cache_agent_obj['name'] = cache_agent
+		cache_agent_obj['ip'] = all_cache_agents[cache_agent]
+		if is_alive(cache_agent_obj['ip']):
+			break
+
 	return cache_agent_obj

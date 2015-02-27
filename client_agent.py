@@ -12,8 +12,34 @@ from get_srv import *
 from mpd_parser import *
 from download_chunk import *
 
+## ==================================================================================================
+# Finished steaming videos, write out traces
+# @input : client_ID --- the client ID to write traces
+# 		   client_tr --- the client trace dictionary
+## ==================================================================================================
+def writeTrace(client_ID, client_tr):
+	trFileName = "./dataQoE/" + client_ID + ".json"
+	with open(trFileName, 'w') as outfile:
+		json.dump(client_tr, outfile, sort_keys = True, indent = 4, ensure_ascii=False)
+	
+	shutil.rmtree('./tmp')
+
+## ==================================================================================================
+# Write out Error Client Traces
+# @input : client_ID --- the client ID to write traces
+## ==================================================================================================
+def reportErrorQoE(client_ID):
+	client_tr = {}
+	client_tr[0] = 0
+	writeTrace(client_ID, client_tr)
+
+
 ### define client_agent method that streams a video using server-side controlled server selection
-def server_based_client(cache_agent_ip, video_id, method):
+def server_based_client(cache_agent_obj, video_id, method):
+	## Read info from cache_agent_obj
+	cache_agent_ip = cache_agent_obj['ip']
+	cache_agent = cache_agent_obj['name']
+
 	## ==================================================================================================
 	## Client name and info
 	## ==================================================================================================
@@ -27,26 +53,40 @@ def server_based_client(cache_agent_ip, video_id, method):
 	srv_info = get_srv(cache_agent_ip, video_id, method)
 
 	if srv_info:
-		selected_srv = srv_info['srv']
-		selected_srv_ip = srv_info['ip']
 		videoName = srv_info['vidName']
 	else:
 		logging.info("[" + client_ID + "]Agens client can not get srv_info for video " + str(video_id) + " with method " + method + \
 			" on cache agent " + cache_agent_ip + ". Try again to get the srv_info!!!")
 		srv_info = get_srv(cache_agent_ip, video_id, method)
 		if srv_info:
-			selected_srv = srv_info['srv']
-			selected_srv_ip = srv_info['ip']
-			videoName = srv_info['vidName']
+			# videoName = srv_info['vidName']
+			videoName = 'BBB'
 		else:
 			logging.info("[" + client_ID + "]Agens client can not get srv_info for video " + str(video_id) + " with method " + method + \
 			" on cache agent " + cache_agent_ip + " twice. Stop the streaming!!!")
-			return
+
+			if method == "qoe":
+				srv_info = get_srv(cache_agent_ip, video_id, method)
+				if not srv_info:
+					trial_time = 0
+					while not srv_info and trial_time < 10:
+						cache_agent_obj = attach_cache_agent()
+						cache_agent_ip = cache_agent_obj['ip']
+						cache_agent = cache_agent_obj['name']
+						srv_info = get_srv(cache_agent_ip, video_id, method)
+						trial_time = trial_time + 1
+					if not srv_info:
+						reportErrorQoE(client_ID)
+						return
+			else:
+				## Write out 0 QoE traces for clients.
+				reportErrorQoE(client_ID)
+				return
 
 	## ==================================================================================================
 	## Parse the mpd file for the streaming video
 	## ==================================================================================================
-	rsts = mpd_parser(selected_srv_ip, videoName)
+	rsts = mpd_parser(srv_info['ip'], videoName)
 	vidLength = int(rsts['mediaDuration'])
 	minBuffer = num(rsts['minBufferTime'])
 	reps = rsts['representations']
@@ -76,8 +116,8 @@ def server_based_client(cache_agent_ip, video_id, method):
 	chunk_download = 0
 	loadTS = time.time()
 	print "[" + client_ID + "] Start downloading video " + videoName + " at " + datetime.datetime.fromtimestamp(int(loadTS)).strftime("%Y-%m-%d %H:%M:%S")
-	print "[" + client_ID + "] Selected server for next 12 chunks is :" + selected_srv
-	vchunk_sz = download_chunk(selected_srv_ip, videoName, vidInit)
+	print "[" + client_ID + "] Selected server for next 12 chunks is :" + srv_info['srv']
+	vchunk_sz = download_chunk(srv_info['ip'], videoName, vidInit)
 	startTS = time.time()
 	print "[" + client_ID + "] Start playing video at " + datetime.datetime.fromtimestamp(int(startTS)).strftime("%Y-%m-%d %H:%M:%S")
 	est_bw = vchunk_sz * 8 / (startTS - loadTS)
@@ -99,17 +139,36 @@ def server_based_client(cache_agent_ip, video_id, method):
 		nextRep = findRep(sortedVids, est_bw, curBuffer, minBuffer)
 		vidChunk = reps[nextRep]['name'].replace('$Number$', str(chunkNext))
 		loadTS = time.time();
-		vchunk_sz = download_chunk(selected_srv_ip, videoName, vidChunk)
+		vchunk_sz = download_chunk(srv_info['ip'], videoName, vidChunk)
 		
 		## Try 10 times to download the chunk
-		while vchunk_sz == 0 and error_num < 10:
+		while vchunk_sz == 0 and error_num < 3:
 			# Try to download again the chunk
-			vchunk_sz = download_chunk(selected_srv_ip, videoName, vidChunk)
+			vchunk_sz = download_chunk(srv_info['ip'], videoName, vidChunk)
+			error_num = error_num + 1
 
 		if vchunk_sz == 0:
-			logging.info("[" + client_ID + "]Agens client can not download chunks video " + videoName + " from server " + selected_srv + \
-			" 10 times. Stop and exit the streaming!!!")
-			return
+			logging.info("[" + client_ID + "]Agens client can not download chunks video " + videoName + " from server " + srv_info['srv'] + \
+			" 3 times. Stop and exit the streaming!!!")
+
+			## Write out 0 QoE traces for clients.
+			if method == "qoe":
+				update_qoe(cache_agent_ip, srv_info['srv'], 0, 0.9)
+				srv_info = get_srv(cache_agent_ip, video_id, method)
+				trial_time = 0
+				while not srv_info and trial_time < 10:
+					cache_agent_obj = attach_cache_agent()
+					cache_agent_ip = cache_agent_obj['ip']
+					cache_agent = cache_agent_obj['name']
+					srv_info = get_srv(cache_agent_ip, video_id, method)
+					trial_time = trial_time + 1
+				if not srv_info:
+					reportErrorQoE(client_ID)
+					return
+			else:
+				update_qoe(cache_agent_ip, srv_info['srv'], 0, 0.9)
+				reportErrorQoE(client_ID)
+				return
 
 		curTS = time.time()
 		rsp_time = curTS - loadTS
@@ -130,21 +189,20 @@ def server_based_client(cache_agent_ip, video_id, method):
 		chunk_QoE = computeQoE(freezingTime, curBW, maxBW)
 
 		print "|---", str(int(curTS)), "---|---", str(chunkNext), "---|---", nextRep, "---|---", str(chunk_QoE), "---|---", \
-						str(curBuffer), "---|---", str(freezingTime), "---|---", selected_srv, "---|---", str(rsp_time), "---|"
+						str(curBuffer), "---|---", str(freezingTime), "---|---", srv_info['srv'], "---|---", str(rsp_time), "---|"
 		
 		client_tr[chunkNext] = dict(TS=int(curTS), Representation=nextRep, QoE=chunk_QoE, Buffer=curBuffer, \
-			Freezing=freezingTime, Server=selected_srv, Response=rsp_time)
+			Freezing=freezingTime, Server=srv_info['srv'], Response=rsp_time)
 		srv_qoe_tr[chunkNext] = chunk_QoE
 
 		# Select server for next 12 chunks
 		if chunkNext%12 == 0 and chunkNext > 4:
 			mnQoE = averageQoE(srv_qoe_tr)
-			update_qoe(cache_agent_ip, selected_srv, mnQoE, alpha)
-			srv_info = get_srv(cache_agent_ip, video_id, method)
-			if srv_info:
-				selected_srv = srv_info['srv']
-				selected_srv_ip = srv_info['ip']
-				print "[" + client_ID + "] Selected server for next 12 chunks is :" + selected_srv
+			update_qoe(cache_agent_ip, srv_info['srv'], mnQoE, alpha)
+			if method == "qoe":
+				srv_info = get_srv(cache_agent_ip, video_id, method)
+				if srv_info:
+					print "[" + client_ID + "] Selected server for next 12 chunks is :" + srv_info['srv']
 
 		# Update iteration information
 		curBuffer = curBuffer + chunkLen
@@ -154,20 +212,8 @@ def server_based_client(cache_agent_ip, video_id, method):
 		chunk_download += 1
 		chunkNext += 1
 
-	## ==================================================================================================
-	# Finished steaming videos, write out traces
-	## ==================================================================================================
-	# trFileName = "./data/" + clientID + "_" + videoName + "_" + str(time.time()) + ".json"
-	## Writer out traces files and upload to google cloud
-	trFileName = "./dataQoE/" + client_ID + ".json"
-	with open(trFileName, 'w') as outfile:
-		json.dump(client_tr, outfile, sort_keys = True, indent = 4, ensure_ascii=False)
-	# qoe_tr_filename = "./data/" + client_ID + "_QoE.json"
-	# with open(qoe_tr_filename, 'w') as outfile:
-	#	json.dump(srv_qoe_tr, outfile, sort_keys = True, indent = 4, ensure_ascii = False)
-	
-	shutil.rmtree('./tmp')
-
+	## Write out traces after finishing the streaming
+	writeTrace(client_ID, client_tr)
 
 
 
