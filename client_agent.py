@@ -4,6 +4,7 @@ import time
 import datetime
 import json
 import shutil
+import os
 import logging
 from dash_utils import *
 from dash_qoe import *
@@ -22,7 +23,7 @@ def writeTrace(client_ID, client_tr):
 	with open(trFileName, 'w') as outfile:
 		json.dump(client_tr, outfile, sort_keys = True, indent = 4, ensure_ascii=False)
 	
-	shutil.rmtree('./tmp')
+	# shutil.rmtree('./tmp')
 
 ## ==================================================================================================
 # Write out Error Client Traces
@@ -87,6 +88,33 @@ def server_based_client(cache_agent_obj, video_id, method):
 	## Parse the mpd file for the streaming video
 	## ==================================================================================================
 	rsts = mpd_parser(srv_info['ip'], videoName)
+
+	## Add mpd_parser failure handler
+	if not rsts:
+		logging.info("[" + client_ID + "]Agens client can not download mpd file for video " + videoName + " from server " + srv_info['srv'] + \
+					"Stop and exit the streaming for methods other than QoE. For qoe methods, get new srv_info!!!")
+
+		if method == "qoe":
+			update_qoe(cache_agent_ip, srv_info['srv'], 0, 0.9)
+			srv_info = get_srv(cache_agent_ip, video_id, method)
+			trial_time = 0
+			while not srv_info and trial_time < 10:
+				cache_agent_obj = attach_cache_agent()
+				cache_agent_ip = cache_agent_obj['ip']
+				cache_agent = cache_agent_obj['name']
+				srv_info = get_srv(cache_agent_ip, video_id, method)
+				trial_time = trial_time + 1
+			if not srv_info:
+				reportErrorQoE(client_ID)
+				return
+			rsts = mpd_parser(srv_info['ip'], videoName)
+		else:
+			update_qoe(cache_agent_ip, srv_info['srv'], 0, 0.9)
+			reportErrorQoE(client_ID)
+			return
+
+
+
 	vidLength = int(rsts['mediaDuration'])
 	minBuffer = num(rsts['minBufferTime'])
 	reps = rsts['representations']
@@ -165,6 +193,7 @@ def server_based_client(cache_agent_obj, video_id, method):
 				if not srv_info:
 					reportErrorQoE(client_ID)
 					return
+				vchunk_sz = download_chunk(srv_info['ip'], videoName, vidChunk)
 			else:
 				update_qoe(cache_agent_ip, srv_info['srv'], 0, 0.9)
 				reportErrorQoE(client_ID)
@@ -214,6 +243,10 @@ def server_based_client(cache_agent_obj, video_id, method):
 
 	## Write out traces after finishing the streaming
 	writeTrace(client_ID, client_tr)
+
+	## If tmp path exists, deletes it.
+	if os.path.exists('./tmp'):
+		shutil.rmtree('./tmp')
 
 
 

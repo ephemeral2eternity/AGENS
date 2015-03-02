@@ -6,9 +6,7 @@ def download_chunk(server_addr, vidName, chunk_name):
 	# print "download url: " + url
 	try:
 		u = urllib2.urlopen(url)
-	except urllib2.URLError, e:
-		print e.code
-		print "[Error] Chunk Downloading Error!", e.read()
+	except:
 		return 0
 
 	localCache = './tmp/'

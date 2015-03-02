@@ -19,11 +19,15 @@ def mpd_parser(server_address, videoName):
 	url = 'http://' + server_address + '/' + videoName + '/' + mpdFile
 	print "MPD URL: ", url
 	#r = requests.get(url)
-	r = urllib2.Request(url)
-	f = urllib2.urlopen(r)
-	mpdString = f.read()
-	# mpdString = str(r.content)
-	# print mpdString
+
+	try:
+		r = urllib2.Request(url)
+		f = urllib2.urlopen(r)
+		mpdString = f.read()
+		# mpdString = str(r.content)
+		# print mpdString
+	except:
+		return {}
 
 	representations = {}
 
