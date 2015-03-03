@@ -38,5 +38,5 @@ for i in range(5):
 
 	## Testing load based server selection
 	method = 'qoe'
-	server_based_client(cache_agent, video_id, method)
+	server_based_client(cache_agent, video_id, method, "exp" + str(i))
 

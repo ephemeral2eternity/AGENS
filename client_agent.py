@@ -40,7 +40,7 @@ def reportErrorQoE(client_ID, srv):
 #		   method --- selecting server according to which method
 #					  Available methods are: load, rtt, hop, random, qoe
 ## ==================================================================================================
-def server_based_client(cache_agent_obj, video_id, method):
+def server_based_client(cache_agent_obj, video_id, method, expID=None):
 	## Read info from cache_agent_obj
 	cache_agent_ip = cache_agent_obj['ip']
 	cache_agent = cache_agent_obj['name']
@@ -49,8 +49,11 @@ def server_based_client(cache_agent_obj, video_id, method):
 	## Client name and info
 	## ==================================================================================================
 	client = str(socket.gethostname())
-	cur_ts = time.strftime("%m%d%H%M")
-	client_ID = client + "_" + cur_ts + "_" + method
+	if expID:
+		client_ID = client + "_" + expID + "_" + method
+	else:
+		cur_ts = time.strftime("%m%d%H%M")
+		client_ID = client + "_" + cur_ts + "_" + method
 	videoName = 'BBB'
 
 	## ==================================================================================================
