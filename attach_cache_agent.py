@@ -78,6 +78,7 @@ def attach_cache_agent():
 	trial_num = 0
 	while not all_cache_agents and trial_num < 20:
 		all_cache_agents = get_cache_agents()
+		trial_num = trial_num + 1
 
 	if not all_cache_agents:
 		logging.info("[" + client_name + "]Agens client can not connect to any cache agent 20 times. The client might lose connection!!!")

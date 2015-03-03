@@ -22,20 +22,24 @@ def writeTrace(client_ID, client_tr):
 	trFileName = "./dataQoE/" + client_ID + ".json"
 	with open(trFileName, 'w') as outfile:
 		json.dump(client_tr, outfile, sort_keys = True, indent = 4, ensure_ascii=False)
-	
-	# shutil.rmtree('./tmp')
 
 ## ==================================================================================================
 # Write out Error Client Traces
 # @input : client_ID --- the client ID to write traces
 ## ==================================================================================================
-def reportErrorQoE(client_ID):
+def reportErrorQoE(client_ID, srv):
 	client_tr = {}
-	client_tr[0] = 0
+	curTS = time.time()
+	client_tr["0"] = dict(TS=int(curTS), QoE=0, Server=srv, Representation=-1, Freezing=-1, Response=1000, Buffer=0)
 	writeTrace(client_ID, client_tr)
 
-
-### define client_agent method that streams a video using server-side controlled server selection
+## ==================================================================================================
+# define client_agent method that streams a video using server-side controlled server selection
+# @input : cache_agent_obj --- the dict denoting cache agent ip and name
+#		   video_id --- the video id the client is requesting
+#		   method --- selecting server according to which method
+#					  Available methods are: load, rtt, hop, random, qoe
+## ==================================================================================================
 def server_based_client(cache_agent_obj, video_id, method):
 	## Read info from cache_agent_obj
 	cache_agent_ip = cache_agent_obj['ip']
@@ -47,41 +51,35 @@ def server_based_client(cache_agent_obj, video_id, method):
 	client = str(socket.gethostname())
 	cur_ts = time.strftime("%m%d%H%M")
 	client_ID = client + "_" + cur_ts + "_" + method
+	videoName = 'BBB'
 
 	## ==================================================================================================
 	## Get the initial streaming server
 	## ==================================================================================================
 	srv_info = get_srv(cache_agent_ip, video_id, method)
 
-	if srv_info:
-		videoName = srv_info['vidName']
-	else:
+	if not srv_info:
 		logging.info("[" + client_ID + "]Agens client can not get srv_info for video " + str(video_id) + " with method " + method + \
 			" on cache agent " + cache_agent_ip + ". Try again to get the srv_info!!!")
 		srv_info = get_srv(cache_agent_ip, video_id, method)
-		if srv_info:
-			# videoName = srv_info['vidName']
-			videoName = 'BBB'
-		else:
+		if not srv_info:
 			logging.info("[" + client_ID + "]Agens client can not get srv_info for video " + str(video_id) + " with method " + method + \
 			" on cache agent " + cache_agent_ip + " twice. Stop the streaming!!!")
 
 			if method == "qoe":
-				srv_info = get_srv(cache_agent_ip, video_id, method)
+				trial_time = 0
+				while not srv_info and trial_time < 10:
+					cache_agent_obj = attach_cache_agent()
+					cache_agent_ip = cache_agent_obj['ip']
+					cache_agent = cache_agent_obj['name']
+					srv_info = get_srv(cache_agent_ip, video_id, method)
+					trial_time = trial_time + 1
 				if not srv_info:
-					trial_time = 0
-					while not srv_info and trial_time < 10:
-						cache_agent_obj = attach_cache_agent()
-						cache_agent_ip = cache_agent_obj['ip']
-						cache_agent = cache_agent_obj['name']
-						srv_info = get_srv(cache_agent_ip, video_id, method)
-						trial_time = trial_time + 1
-					if not srv_info:
-						reportErrorQoE(client_ID)
-						return
+					reportErrorQoE(client_ID, cache_agent_obj['name'])
+					return
 			else:
 				## Write out 0 QoE traces for clients.
-				reportErrorQoE(client_ID)
+				reportErrorQoE(client_ID, cache_agent_obj['name'])
 				return
 
 	## ==================================================================================================
@@ -97,20 +95,24 @@ def server_based_client(cache_agent_obj, video_id, method):
 		if method == "qoe":
 			update_qoe(cache_agent_ip, srv_info['srv'], 0, 0.9)
 			srv_info = get_srv(cache_agent_ip, video_id, method)
+			if not srv_info:
+				rsts = mpd_parser(srv_info['ip'], videoName)
+			else:
+				rsts = ''
 			trial_time = 0
-			while not srv_info and trial_time < 10:
+			while not rsts and trial_time < 10:
 				cache_agent_obj = attach_cache_agent()
 				cache_agent_ip = cache_agent_obj['ip']
 				cache_agent = cache_agent_obj['name']
 				srv_info = get_srv(cache_agent_ip, video_id, method)
+				rsts = mpd_parser(srv_info['ip'], videoName)
 				trial_time = trial_time + 1
-			if not srv_info:
-				reportErrorQoE(client_ID)
+			if not rsts:
+				reportErrorQoE(client_ID, srv_info['srv'])
 				return
-			rsts = mpd_parser(srv_info['ip'], videoName)
 		else:
 			update_qoe(cache_agent_ip, srv_info['srv'], 0, 0.9)
-			reportErrorQoE(client_ID)
+			reportErrorQoE(client_ID, srv_info['srv'])
 			return
 
 
@@ -191,12 +193,12 @@ def server_based_client(cache_agent_obj, video_id, method):
 					srv_info = get_srv(cache_agent_ip, video_id, method)
 					trial_time = trial_time + 1
 				if not srv_info:
-					reportErrorQoE(client_ID)
+					reportErrorQoE(client_ID, srv_info['srv'])
 					return
 				vchunk_sz = download_chunk(srv_info['ip'], videoName, vidChunk)
 			else:
 				update_qoe(cache_agent_ip, srv_info['srv'], 0, 0.9)
-				reportErrorQoE(client_ID)
+				reportErrorQoE(client_ID, srv_info['srv'])
 				return
 
 		curTS = time.time()

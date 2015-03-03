@@ -38,6 +38,5 @@ for i in range(5):
 
 	## Testing load based server selection
 	method = 'qoe'
-	waitRandom(1, 100)
 	server_based_client(cache_agent, video_id, method)
 
