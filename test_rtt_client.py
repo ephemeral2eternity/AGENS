@@ -31,7 +31,7 @@ p = 0.1
 zipf_cdf = getZipfCDF(N, p)
 
 ### Get the server to start streaming
-for i in range(1):
+for i in range(5):
 	# Randomly select a video to stream
 	vidNum = 1000
 	video_id = weighted_choice(zipf_cdf)

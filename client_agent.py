@@ -203,6 +203,8 @@ def server_based_client(cache_agent_obj, video_id, method, expID=None):
 				update_qoe(cache_agent_ip, srv_info['srv'], 0, 0.9)
 				reportErrorQoE(client_ID, srv_info['srv'])
 				return
+		else:
+			error_num = 0
 
 		curTS = time.time()
 		rsp_time = curTS - loadTS
@@ -253,5 +255,4 @@ def server_based_client(cache_agent_obj, video_id, method, expID=None):
 	if os.path.exists('./tmp'):
 		shutil.rmtree('./tmp')
 
-
-
+	return
