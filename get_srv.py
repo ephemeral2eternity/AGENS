@@ -10,13 +10,15 @@ import urllib2
 # ================================================================================
 def get_srv(cache_agent_ip, video_id, method):
 	url = 'http://%s:8615/video/getSrv?vidID=%d&method=%s'%(cache_agent_ip, video_id, method)
-	print url
+	# print url
+	srv_info = {}
 	try:
 		rsp = urllib2.urlopen(url)
 		rsp_headers = rsp.info()
 		srv_info = json.loads(rsp_headers['Params'])
-		return srv_info
 	except:
 		print "get_srv failed"
-		return {}
+		pass
+
+	return srv_info
 

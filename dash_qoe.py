@@ -62,5 +62,6 @@ def update_qoe(cache_agent_ip, selected_srv, minuteQoE, alpha):
 		print "Update QoE for server :", selected_srv, " to cache agent ", cache_agent_ip, " successfully!"
 	except:
 		print "Failed to update QoE for server ", selected_srv, " to cache agent ", cache_agent_ip
+		pass
 
 
