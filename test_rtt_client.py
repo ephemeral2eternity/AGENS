@@ -31,12 +31,12 @@ p = 0.1
 zipf_cdf = getZipfCDF(N, p)
 
 ### Get the server to start streaming
-for i in range(5):
+for i in range(1):
 	# Randomly select a video to stream
 	vidNum = 1000
 	video_id = weighted_choice(zipf_cdf)
 
 	## Testing load based server selection
 	method = 'rtt'
-	server_based_client(cache_agent, video_id, method, "exp" + str(i))
+	server_based_client(cache_agent, video_id, method)
 
