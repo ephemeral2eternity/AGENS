@@ -38,25 +38,25 @@ for i in range(1):
 	## Testing QoE based server selection
 	method = 'qoe'
 	waitRandom(1, 100)
-	server_based_client(cache_agent, video_id, method)
+	client_agent(cache_agent, video_id, method)
 
 	## Testing load based server selection
 	method = 'load'
 	waitRandom(1, 100)
-	server_based_client(cache_agent, video_id, method)
+	client_agent(cache_agent, video_id, method)
 
 	## Testing rtt based server selection
 	method = 'rtt'
 	waitRandom(1, 100)
-	server_based_client(cache_agent, video_id, method)
+	client_agent(cache_agent, video_id, method)
 
 	## Testing hop based server selection
 	method = 'hop'
 	waitRandom(1, 100)
-	server_based_client(cache_agent, video_id, method)
+	client_agent(cache_agent, video_id, method)
 
 	## Testing random server selection
 	method = 'random'
 	waitRandom(1, 100)
-	server_based_client(cache_agent, video_id, method)
+	client_agent(cache_agent, video_id, method)
 

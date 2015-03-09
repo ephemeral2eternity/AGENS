@@ -5,6 +5,7 @@ import datetime
 import json
 import shutil
 import os
+import math
 import logging
 from dash_utils import *
 from dash_qoe import *
@@ -21,7 +22,7 @@ from client_utils import *
 #		   method --- selecting server according to which method
 #					  Available methods are: load, rtt, hop, random, qoe
 ## ==================================================================================================
-def client_agent(cache_agent_obj, video_id, method, expID=None):
+def long_client_agent(cache_agent_obj, video_id, method, vidNum=5, expID=None):
 	## Read info from cache_agent_obj
 	cache_agent_ip = cache_agent_obj['ip']
 	cache_agent = cache_agent_obj['name']
@@ -144,19 +145,26 @@ def client_agent(cache_agent_obj, video_id, method, expID=None):
 	client_tr = {}
 	srv_qoe_tr = {}
 	alpha = 0.1
-	
+	error_num = 0
+
+	## Define how long the video is
+	vid_len_in_chunks = int(vidLength / chunkLen + 1)
+	vid_len = vid_len_in_chunks * vidNum
 
 	## ==================================================================================================
 	# Start streaming the video
 	## ==================================================================================================
-	while (chunkNext * chunkLen < vidLength) :
+	while (chunkNext < vid_len) :
 		nextRep = findRep(sortedVids, est_bw, curBuffer, minBuffer)
-		vidChunk = reps[nextRep]['name'].replace('$Number$', str(chunkNext))
+
+		chunkID = chunkNext % vid_len_in_chunks
+		print chunkNext, chunkID, vid_len_in_chunks
+		vidChunk = reps[nextRep]['name'].replace('$Number$', str(chunkID))
+
 		loadTS = time.time();
 		vchunk_sz = download_chunk(srv_info['ip'], videoName, vidChunk)
 		
 		## Try 10 times to download the chunk
-		error_num = 0
 		while vchunk_sz == 0 and error_num < 3:
 			# Try to download again the chunk
 			vchunk_sz = download_chunk(srv_info['ip'], videoName, vidChunk)
@@ -185,6 +193,8 @@ def client_agent(cache_agent_obj, video_id, method, expID=None):
 				update_qoe(cache_agent_ip, srv_info['srv'], 0, 0.9)
 				reportErrorQoE(client_ID, srv_info['srv'])
 				return
+		else:
+			error_num = 0
 
 		curTS = time.time()
 		rsp_time = curTS - loadTS
@@ -204,7 +214,7 @@ def client_agent(cache_agent_obj, video_id, method, expID=None):
 		curBW = num(reps[nextRep]['bw'])
 		chunk_QoE = computeQoE(freezingTime, curBW, maxBW)
 
-		print "|---", str(int(curTS)), "---|---", str(chunkNext), "---|---", nextRep, "---|---", str(chunk_QoE), "---|---", \
+		print "|---", str(int(curTS)), "---|---", str(chunkNext), "---|---", str(chunkID), "---|---", nextRep, "---|---", str(chunk_QoE), "---|---", \
 						str(curBuffer), "---|---", str(freezingTime), "---|---", srv_info['srv'], "---|---", str(rsp_time), "---|"
 		
 		client_tr[chunkNext] = dict(TS=int(curTS), Representation=nextRep, QoE=chunk_QoE, Buffer=curBuffer, \
