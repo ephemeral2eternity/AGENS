@@ -21,8 +21,12 @@ def writeTrace(client_ID, client_tr):
 # Write out Error Client Traces
 # @input : client_ID --- the client ID to write traces
 ## ==================================================================================================
-def reportErrorQoE(client_ID, srv):
+def reportErrorQoE(client_ID, srv, trace=None):
 	client_tr = {}
 	curTS = time.time()
+	if trace:
+		client_error_ID = "crash_" + client_ID
+		writeTrace(client_error_ID, trace)
+
 	client_tr["0"] = dict(TS=int(curTS), QoE=0, Server=srv, Representation=-1, Freezing=-1, Response=1000, Buffer=0)
 	writeTrace(client_ID, client_tr)

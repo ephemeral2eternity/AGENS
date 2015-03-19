@@ -178,12 +178,12 @@ def client_agent(cache_agent_obj, video_id, method, expID=None):
 					srv_info = get_srv(cache_agent_ip, video_id, method)
 					trial_time = trial_time + 1
 				if not srv_info:
-					reportErrorQoE(client_ID, srv_info['srv'])
+					reportErrorQoE(client_ID, srv_info['srv'], trace=client_tr)
 					return
 				vchunk_sz = download_chunk(srv_info['ip'], videoName, vidChunk)
 			else:
 				update_qoe(cache_agent_ip, srv_info['srv'], 0, 0.9)
-				reportErrorQoE(client_ID, srv_info['srv'])
+				reportErrorQoE(client_ID, srv_info['srv'], trace=client_tr)
 				return
 
 		curTS = time.time()
