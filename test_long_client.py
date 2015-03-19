@@ -42,7 +42,7 @@ def main(argv):
 	try:
 		opts, args = getopt.getopt(argv,"hm:d:",["method=","duration="])
 	except getopt.GetoptError:
-		print 'test.py -i <inputfile> -o <outputfile>'
+		print 'test.py -m <method> -d <number of 10 minutes>'
 		sys.exit(2)
 
 	for opt, arg in opts:
