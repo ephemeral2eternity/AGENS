@@ -13,6 +13,7 @@ from get_srv import *
 from mpd_parser import *
 from download_chunk import *
 from client_utils import *
+from failover import *
 
 ## ==================================================================================================
 # define client_agent method that streams a video using server-side controlled server selection
@@ -42,29 +43,22 @@ def client_agent(cache_agent_obj, video_id, method, expID=None):
 	## ==================================================================================================
 	srv_info = get_srv(cache_agent_ip, video_id, method)
 
+	## Re-send the request to the cache agent
 	if not srv_info:
-		logging.info("[" + client_ID + "]Agens client can not get srv_info for video " + str(video_id) + " with method " + method + \
-			" on cache agent " + cache_agent_ip + ". Try again to get the srv_info!!!")
-		srv_info = get_srv(cache_agent_ip, video_id, method)
-		if not srv_info:
-			logging.info("[" + client_ID + "]Agens client can not get srv_info for video " + str(video_id) + " with method " + method + \
-			" on cache agent " + cache_agent_ip + " twice. Stop the streaming!!!")
+		srv_info = srv_failover(client_ID, video_id, method, cache_agent_ip)
 
-			if method == "qoe":
-				trial_time = 0
-				while not srv_info and trial_time < 10:
-					cache_agent_obj = attach_cache_agent()
-					cache_agent_ip = cache_agent_obj['ip']
-					cache_agent = cache_agent_obj['name']
-					srv_info = get_srv(cache_agent_ip, video_id, method)
-					trial_time = trial_time + 1
-				if not srv_info:
-					reportErrorQoE(client_ID, cache_agent_obj['name'])
-					return
-			else:
-				## Write out 0 QoE traces for clients.
-				reportErrorQoE(client_ID, cache_agent_obj['name'])
-				return
+	## If the failover has taken action but still not get the srv_info, it says the cache agent is done.
+	if not srv_info and method is 'qoe':
+		# Attache to a new cache agent.
+		cache_agent_obj = attach_cache_agent()
+		cache_agent_ip = cache_agent_obj['ip']
+		cache_agent = cache_agent_obj['name']
+		srv_info = srv_failover(client_ID, video_id, method, cache_agent_ip)
+
+	## If the srv_info is stil not got yet
+	if not srv_info:
+		reportErrorQoE(client_ID, cache_agent_obj['name'])
+		return
 
 	## ==================================================================================================
 	## Parse the mpd file for the streaming video
@@ -77,20 +71,20 @@ def client_agent(cache_agent_obj, video_id, method, expID=None):
 					"Stop and exit the streaming for methods other than QoE. For qoe methods, get new srv_info!!!")
 
 		if method == "qoe":
-			update_qoe(cache_agent_ip, srv_info['srv'], 0, 0.9)
-			srv_info = get_srv(cache_agent_ip, video_id, method)
-			if not srv_info:
-				rsts = mpd_parser(srv_info['ip'], videoName)
-			else:
-				rsts = ''
 			trial_time = 0
 			while not rsts and trial_time < 10:
-				cache_agent_obj = attach_cache_agent()
-				cache_agent_ip = cache_agent_obj['ip']
-				cache_agent = cache_agent_obj['name']
-				srv_info = get_srv(cache_agent_ip, video_id, method)
-				rsts = mpd_parser(srv_info['ip'], videoName)
+				update_qoe(cache_agent_ip, srv_info['srv'], 0, 0.9)
+				srv_info = srv_failover(client_ID, video_id, method, cache_agent_ip)
+				if srv_info:
+					rsts = mpd_parser(srv_info['ip'], videoName)
+				else:
+					rsts = ''
+					# Attache to a new cache agent.
+					cache_agent_obj = attach_cache_agent()
+					cache_agent_ip = cache_agent_obj['ip']
+					cache_agent = cache_agent_obj['name']
 				trial_time = trial_time + 1
+
 			if not rsts:
 				reportErrorQoE(client_ID, srv_info['srv'])
 				return
@@ -98,8 +92,6 @@ def client_agent(cache_agent_obj, video_id, method, expID=None):
 			update_qoe(cache_agent_ip, srv_info['srv'], 0, 0.9)
 			reportErrorQoE(client_ID, srv_info['srv'])
 			return
-
-
 
 	vidLength = int(rsts['mediaDuration'])
 	minBuffer = num(rsts['minBufferTime'])
@@ -168,23 +160,28 @@ def client_agent(cache_agent_obj, video_id, method, expID=None):
 
 			## Write out 0 QoE traces for clients.
 			if method == "qoe":
-				update_qoe(cache_agent_ip, srv_info['srv'], 0, 0.9)
-				srv_info = get_srv(cache_agent_ip, video_id, method)
 				trial_time = 0
-				while not srv_info and trial_time < 10:
-					cache_agent_obj = attach_cache_agent()
-					cache_agent_ip = cache_agent_obj['ip']
-					cache_agent = cache_agent_obj['name']
-					srv_info = get_srv(cache_agent_ip, video_id, method)
+				while vchunk_sz == 0 and trial_time < 10:
+					update_qoe(cache_agent_ip, srv_info['srv'], 0, 0.9)
+					srv_info = srv_failover(client_ID, video_id, method, cache_agent_ip)
+					if srv_info:
+						vchunk_sz = download_chunk(srv_info['ip'], videoName, vidChunk)
+					else:
+						vchunk_sz = 0
+						# Attache to a new cache agent.
+						cache_agent_obj = attach_cache_agent()
+						cache_agent_ip = cache_agent_obj['ip']
+						cache_agent = cache_agent_obj['name']
 					trial_time = trial_time + 1
-				if not srv_info:
+				if vchunk_sz == 0:
 					reportErrorQoE(client_ID, srv_info['srv'], trace=client_tr)
 					return
-				vchunk_sz = download_chunk(srv_info['ip'], videoName, vidChunk)
 			else:
 				update_qoe(cache_agent_ip, srv_info['srv'], 0, 0.9)
 				reportErrorQoE(client_ID, srv_info['srv'], trace=client_tr)
 				return
+		else:
+			error_num = 0
 
 		curTS = time.time()
 		rsp_time = curTS - loadTS

@@ -54,7 +54,7 @@ for i in range(1):
 	method = 'random'
 	waitRandom(1, 100)
 	client_agent(cache_agent, video_id, method)
-	
+
 	## Testing QoE based server selection
 	method = 'qoe'
 	waitRandom(1, 100)
