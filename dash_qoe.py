@@ -31,7 +31,7 @@ def computeQoE(freezing_time, cur_bw, max_bw):
 def averageQoE(srv_qoe_tr):
 	mn_QoE = 0.0
 	curSrvNum = 0
-	if len(srv_qoe_tr) < 12:
+	if len(srv_qoe_tr) < 6:
 		for chunk_id in srv_qoe_tr.keys():
 			curSrvNum = curSrvNum + 1
 			mn_QoE += srv_qoe_tr[chunk_id]
@@ -39,7 +39,7 @@ def averageQoE(srv_qoe_tr):
 	else:
 		## Study chunks in the previous 1 minute
 		chunk_ids = sorted(srv_qoe_tr.keys())
-		last_minute_chunk_ids = chunk_ids[-12:]
+		last_minute_chunk_ids = chunk_ids[-6:]
 		print "Average QoE for chunk ids: ", str(last_minute_chunk_ids)
 		for chunk_id in last_minute_chunk_ids:
 			curSrvNum = curSrvNum + 1
