@@ -44,11 +44,15 @@ def long_client_agent(cache_agent_obj, video_id, method, vidNum=5, expID=None):
 	## ==================================================================================================
 	srv_info = get_srv(cache_agent_ip, video_id, method)
 
+
+	## ==================================================================================================
+	## Cache agent failure handler
+	## ==================================================================================================
 	if not srv_info:
 		srv_info = srv_failover(client_ID, video_id, method, cache_agent_ip)
 
 	## If the failover has taken action but still not get the srv_info, it says the cache agent is done.
-	if not srv_info and method is 'qoe':
+	if (not srv_info) and (method is 'qoe'):
 		# Attache to a new cache agent.
 		cache_agent_obj = attach_cache_agent()
 		cache_agent_ip = cache_agent_obj['ip']
@@ -59,20 +63,26 @@ def long_client_agent(cache_agent_obj, video_id, method, vidNum=5, expID=None):
 	if not srv_info:
 		reportErrorQoE(client_ID, cache_agent_obj['name'])
 		return
+	## ==================================================================================================
+
 
 	## ==================================================================================================
 	## Parse the mpd file for the streaming video
 	## ==================================================================================================
 	rsts = mpd_parser(srv_info['ip'], videoName)
 
+
+
+	### ===========================================================================================================
 	## Add mpd_parser failure handler
+	### ===========================================================================================================
 	if not rsts:
 		logging.info("[" + client_ID + "]Agens client can not download mpd file for video " + videoName + " from server " + srv_info['srv'] + \
 					"Stop and exit the streaming for methods other than QoE. For qoe methods, get new srv_info!!!")
 
 		if method == "qoe":
 			trial_time = 0
-			while not rsts and trial_time < 10:
+			while (not rsts) and (trial_time < 10):
 				update_qoe(cache_agent_ip, srv_info['srv'], 0, 0.9)
 				srv_info = srv_failover(client_ID, video_id, method, cache_agent_ip)
 				if srv_info:
@@ -92,6 +102,9 @@ def long_client_agent(cache_agent_obj, video_id, method, vidNum=5, expID=None):
 			update_qoe(cache_agent_ip, srv_info['srv'], 0, 0.9)
 			reportErrorQoE(client_ID, srv_info['srv'])
 			return
+	### ===========================================================================================================
+
+
 
 	vidLength = int(rsts['mediaDuration'])
 	minBuffer = num(rsts['minBufferTime'])
@@ -155,23 +168,28 @@ def long_client_agent(cache_agent_obj, video_id, method, vidNum=5, expID=None):
 		loadTS = time.time();
 		vchunk_sz = download_chunk(srv_info['ip'], videoName, vidChunk)
 		
-		## Try 10 times to download the chunk
+		## Try 3 times to download the chunk
 		while vchunk_sz == 0 and error_num < 3:
 			# Try to download again the chunk
 			vchunk_sz = download_chunk(srv_info['ip'], videoName, vidChunk)
 			error_num = error_num + 1
 
+		### ===========================================================================================================
+		## Failover control for the timeout of chunk request
+		### ===========================================================================================================
 		if vchunk_sz == 0:
 			logging.info("[" + client_ID + "]Agens client can not download chunks video " + videoName + " from server " + srv_info['srv'] + \
 			" 3 times. Stop and exit the streaming!!!")
 
-			## Write out 0 QoE traces for clients.
+			## Retry to download the chunk
 			if method == "qoe":
 				trial_time = 0
-				while vchunk_sz == 0 and trial_time < 10:
+				while (vchunk_sz == 0) and (trial_time < 10):
 					update_qoe(cache_agent_ip, srv_info['srv'], 0, 0.9)
+					logging.info("[" + client_ID + "]Agens client failed to download chunk from " + srv_info['srv'] + ". Update bad QoE and rechoose server from cache agent " + cache_agent + "!!!")
 					srv_info = srv_failover(client_ID, video_id, method, cache_agent_ip)
 					if srv_info:
+						logging.info("[" + client_ID + "]Agens choose a new server " + srv_info['srv'] + " for video " + str(video_id) + " from cache agent " + cache_agent + "!!!")
 						vchunk_sz = download_chunk(srv_info['ip'], videoName, vidChunk)
 					else:
 						vchunk_sz = 0
@@ -179,16 +197,19 @@ def long_client_agent(cache_agent_obj, video_id, method, vidNum=5, expID=None):
 						cache_agent_obj = attach_cache_agent()
 						cache_agent_ip = cache_agent_obj['ip']
 						cache_agent = cache_agent_obj['name']
+						logging.info("[" + client_ID + "]Agens client can not contact cache agent and reconnects to cache agent " + cache_agent + "!!")
 					trial_time = trial_time + 1
 				if vchunk_sz == 0:
 					reportErrorQoE(client_ID, srv_info['srv'], trace=client_tr)
 					return
+			## Write out 0 QoE traces for clients.
 			else:
 				update_qoe(cache_agent_ip, srv_info['srv'], 0, 0.9)
 				reportErrorQoE(client_ID, srv_info['srv'], trace=client_tr)
 				return
 		else:
 			error_num = 0
+		### ===========================================================================================================
 
 		curTS = time.time()
 		rsp_time = curTS - loadTS
@@ -216,13 +237,16 @@ def long_client_agent(cache_agent_obj, video_id, method, vidNum=5, expID=None):
 		srv_qoe_tr[chunkNext] = chunk_QoE
 
 		# Select server for next 12 chunks
-		if chunkNext%12 == 0 and chunkNext > 4:
+		if chunkNext%6 == 0 and chunkNext > 6:
 			mnQoE = averageQoE(srv_qoe_tr)
 			update_qoe(cache_agent_ip, srv_info['srv'], mnQoE, alpha)
 			if method == "qoe":
-				srv_info = get_srv(cache_agent_ip, video_id, method)
-				if srv_info:
-					print "[" + client_ID + "] Selected server for next 12 chunks is :" + srv_info['srv']
+				new_srv_info = get_srv(cache_agent_ip, video_id, method)
+				if 'ip' in new_srv_info.keys():
+					print "[" + client_ID + "] Selected server for next 6 chunks is :" + srv_info['srv']
+					srv_info = new_srv_info
+				else:
+					logging.info("[" + client_ID + "]Agens client failed to choose server for video " + str(video_id) + " from cache agent " + cache_agent + "!!!")
 
 		# Update iteration information
 		curBuffer = curBuffer + chunkLen
