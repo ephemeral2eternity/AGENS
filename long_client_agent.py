@@ -55,9 +55,10 @@ def long_client_agent(cache_agent_obj, video_id, method, vidNum=5, expID=None):
 	if (not srv_info) and (method is 'qoe'):
 		# Attache to a new cache agent.
 		cache_agent_obj = attach_cache_agent()
-		cache_agent_ip = cache_agent_obj['ip']
-		cache_agent = cache_agent_obj['name']
-		srv_info = srv_failover(client_ID, video_id, method, cache_agent_ip)
+		if cache_agent_obj:
+			cache_agent_ip = cache_agent_obj['ip']
+			cache_agent = cache_agent_obj['name']
+			srv_info = srv_failover(client_ID, video_id, method, cache_agent_ip)
 
 	## If the srv_info is stil not got yet
 	if not srv_info:
@@ -91,8 +92,9 @@ def long_client_agent(cache_agent_obj, video_id, method, vidNum=5, expID=None):
 					rsts = ''
 					# Attache to a new cache agent.
 					cache_agent_obj = attach_cache_agent()
-					cache_agent_ip = cache_agent_obj['ip']
-					cache_agent = cache_agent_obj['name']
+					if cache_agent_obj:
+						cache_agent_ip = cache_agent_obj['ip']
+						cache_agent = cache_agent_obj['name']
 				trial_time = trial_time + 1
 
 			if not rsts:
@@ -184,20 +186,24 @@ def long_client_agent(cache_agent_obj, video_id, method, vidNum=5, expID=None):
 			## Retry to download the chunk
 			if method == "qoe":
 				trial_time = 0
-				while (vchunk_sz == 0) and (trial_time < 10):
+				while (vchunk_sz == 0) and (trial_time < 3):
 					update_qoe(cache_agent_ip, srv_info['srv'], 0, 0.9)
 					logging.info("[" + client_ID + "]Agens client failed to download chunk from " + srv_info['srv'] + ". Update bad QoE and rechoose server from cache agent " + cache_agent + "!!!")
-					srv_info = srv_failover(client_ID, video_id, method, cache_agent_ip)
-					if srv_info:
+					print "[" + client_ID + "]Agens client failed to download chunk from " + srv_info['srv'] + ". Update bad QoE and rechoose server from cache agent " + cache_agent + "!!!"
+					new_srv_info = srv_failover(client_ID, video_id, method, cache_agent_ip)
+					if new_srv_info:
+						srv_info = new_srv_info
 						logging.info("[" + client_ID + "]Agens choose a new server " + srv_info['srv'] + " for video " + str(video_id) + " from cache agent " + cache_agent + "!!!")
 						vchunk_sz = download_chunk(srv_info['ip'], videoName, vidChunk)
 					else:
 						vchunk_sz = 0
 						# Attache to a new cache agent.
+						print "[" + client_ID + "]Reconnecting to a new cache agent!"
 						cache_agent_obj = attach_cache_agent()
-						cache_agent_ip = cache_agent_obj['ip']
-						cache_agent = cache_agent_obj['name']
-						logging.info("[" + client_ID + "]Agens client can not contact cache agent and reconnects to cache agent " + cache_agent + "!!")
+						if cache_agent_obj:
+							cache_agent_ip = cache_agent_obj['ip']
+							cache_agent = cache_agent_obj['name']
+							logging.info("[" + client_ID + "]Agens client can not contact cache agent and reconnects to cache agent " + cache_agent + "!!")
 					trial_time = trial_time + 1
 				if vchunk_sz == 0:
 					reportErrorQoE(client_ID, srv_info['srv'], trace=client_tr)

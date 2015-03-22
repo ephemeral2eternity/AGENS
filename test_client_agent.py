@@ -12,11 +12,15 @@ import shutil
 client_name = getMyName()
 cache_agent = attach_cache_agent()
 
+if not cache_agent:
+	reportErrorQoE(client_name)
+	sys.exit()
+
 ## Config logging level
 logging.basicConfig(filename='agens_' + client_name + '.log', level=logging.INFO)
 
 ## Try several times to confirm the lose connection of client agent
-# cache_agent = attach_cache_agent()
+# cache_agent = attach_cache_agent(client_name)
 
 print "Client ", client_name, " is connecting to cache agent : ", cache_agent['name']
 cache_agent_ip = cache_agent['ip']

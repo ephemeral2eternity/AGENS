@@ -21,7 +21,7 @@ def writeTrace(client_ID, client_tr):
 # Write out Error Client Traces
 # @input : client_ID --- the client ID to write traces
 ## ==================================================================================================
-def reportErrorQoE(client_ID, srv, trace=None):
+def reportErrorQoE(client_ID, srv=None, trace=None):
 	client_tr = {}
 	curTS = time.time()
 	if trace:

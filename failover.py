@@ -19,13 +19,15 @@ def srv_failover(client_ID, video_id, method, cache_agent_ip):
 	srv_info = get_srv(cache_agent_ip, video_id, method)
 	if not srv_info:
 		logging.info("[" + client_ID + "]Agens client can not get srv_info for video " + str(video_id) + " with method " + method + \
-			" on cache agent " + cache_agent_ip + " twice. Stops requesting if !!!")
-
+			" on cache agent " + cache_agent_ip + " twice. Stops requesting for methods rather than qoe!!!")
+		print "[" + client_ID + "] Agens client can not get srv_info for video " + str(video_id) + " with method " + method + \
+			" on cache agent " + cache_agent_ip + " twice. Stops requesting for methods rather than qoe!"
 		if method == "qoe":
 			trial_time = 0
 			## Re-send the request to the cache agent up to 10 times until the server info is got
 			while not srv_info and trial_time < 10:
 				logging.info("[" + client_ID + "]Agent is a QoE-based control agent, keep getting a server for the video until 10 trials!!!")
+				print "[" + client_ID + "]Agent is a QoE-based control agent, keep getting a server for the video." + "Trial: " + str(trial_time)
 				srv_info = get_srv(cache_agent_ip, video_id, method)
 				trial_time = trial_time + 1
 

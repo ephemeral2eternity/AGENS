@@ -54,11 +54,13 @@ def client_agent(cache_agent_obj, video_id, method, expID=None):
 
 	## If the failover has taken action but still not get the srv_info, it says the cache agent is done.
 	if (not srv_info) and (method is 'qoe'):
+		logging.info("[" + client_ID + "]Agens client fails to get the server for video " + str(video_id) + " 10 times. Trying to reconnect to a new cache agent!!!")
 		# Attache to a new cache agent.
 		cache_agent_obj = attach_cache_agent()
-		cache_agent_ip = cache_agent_obj['ip']
-		cache_agent = cache_agent_obj['name']
-		srv_info = srv_failover(client_ID, video_id, method, cache_agent_ip)
+		if cache_agent_obj:
+			cache_agent_ip = cache_agent_obj['ip']
+			cache_agent = cache_agent_obj['name']
+			srv_info = srv_failover(client_ID, video_id, method, cache_agent_ip)
 
 	## If the srv_info is stil not got yet
 	if not srv_info:
@@ -93,8 +95,9 @@ def client_agent(cache_agent_obj, video_id, method, expID=None):
 					rsts = ''
 					# Attache to a new cache agent.
 					cache_agent_obj = attach_cache_agent()
-					cache_agent_ip = cache_agent_obj['ip']
-					cache_agent = cache_agent_obj['name']
+					if cache_agent_obj:
+						cache_agent_ip = cache_agent_obj['ip']
+						cache_agent = cache_agent_obj['name']
 				trial_time = trial_time + 1
 
 			if not rsts:
@@ -190,9 +193,10 @@ def client_agent(cache_agent_obj, video_id, method, expID=None):
 						vchunk_sz = 0
 						# Attache to a new cache agent.
 						cache_agent_obj = attach_cache_agent()
-						cache_agent_ip = cache_agent_obj['ip']
-						cache_agent = cache_agent_obj['name']
-						logging.info("[" + client_ID + "]Agens client can not contact cache agent and reconnects to cache agent " + cache_agent + "!!")
+						if cache_agent_obj:
+							cache_agent_ip = cache_agent_obj['ip']
+							cache_agent = cache_agent_obj['name']
+							logging.info("[" + client_ID + "]Agens client can not contact cache agent and reconnects to cache agent " + cache_agent + "!!")
 					trial_time = trial_time + 1
 				if vchunk_sz == 0:
 					reportErrorQoE(client_ID, srv_info['srv'], trace=client_tr)

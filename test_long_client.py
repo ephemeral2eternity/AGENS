@@ -14,6 +14,10 @@ def test_long_client(method, duration):
 	client_name = getMyName()
 	cache_agent = attach_cache_agent()
 
+	if not cache_agent:
+		reportErrorQoE(client_name)
+		return
+
 	## Config logging level
 	logging.basicConfig(filename='agens_' + client_name + '.log', level=logging.INFO)
 

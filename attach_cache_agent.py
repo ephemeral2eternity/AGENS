@@ -8,6 +8,7 @@ import sys
 import operator
 import urllib2, socket
 from ping import *
+from client_utils import *
 
 # ================================================================================
 ## Get Client Agent Name
@@ -25,11 +26,12 @@ def get_cache_agents():
 	req = urllib2.Request(url)
 	cache_agents = {}
 	try:
-		res = urllib2.urlopen(req)
+		res = urllib2.urlopen(req, timeout=1)
 		res_headers = res.info()
 		cache_agents = json.loads(res_headers['Params'])
-	except urllib2.HTTPError, e:
-		print "[Error-AGENP-Client] Failed to obtain avaialble cache agent list!"
+	except:
+		print "[Error-AGENP-Client] Failed to obtain availalble cache agent list!"
+		pass
 	return cache_agents
 
 # ================================================================================
@@ -76,21 +78,20 @@ def attach_cache_agent():
 	## Try several times before exit
 	all_cache_agents = get_cache_agents()
 	trial_num = 0
-	while not all_cache_agents and trial_num < 20:
+	while not all_cache_agents and trial_num < 10:
 		all_cache_agents = get_cache_agents()
 		trial_num = trial_num + 1
 
-	if not all_cache_agents:
-		logging.info("[" + client_name + "]Agens client can not connect to any cache agent 20 times. The client might lose connection!!!")
-		sys.exit()
-
-	srvRtts = pingSrvs(all_cache_agents)
-	sorted_srv_rtts = sorted(srvRtts.items(), key=operator.itemgetter(1))
-	for srv_rtt in sorted_srv_rtts:
-		cache_agent = srv_rtt[0]
-		cache_agent_obj['name'] = cache_agent
-		cache_agent_obj['ip'] = all_cache_agents[cache_agent]
-		if is_alive(cache_agent_obj['ip']):
-			break
+	if all_cache_agents:
+		srvRtts = pingSrvs(all_cache_agents)
+		sorted_srv_rtts = sorted(srvRtts.items(), key=operator.itemgetter(1))
+		for srv_rtt in sorted_srv_rtts:
+			cache_agent = srv_rtt[0]
+			cache_agent_obj['name'] = cache_agent
+			cache_agent_obj['ip'] = all_cache_agents[cache_agent]
+			if is_alive(cache_agent_obj['ip']):
+				break
+	else:
+		logging.info("Agens client can not connect to any cache agent 20 times. The client might lose connection!!!")
 
 	return cache_agent_obj
