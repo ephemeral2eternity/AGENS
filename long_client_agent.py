@@ -52,7 +52,7 @@ def long_client_agent(cache_agent_obj, video_id, method, vidNum=5, expID=None):
 		srv_info = srv_failover(client_ID, video_id, method, cache_agent_ip)
 
 	## If the failover has taken action but still not get the srv_info, it says the cache agent is done.
-	if (not srv_info) and (method is 'qoe'):
+	if (not srv_info) and ((method == 'qoe') or (method == "epsilon")):
 		# Attache to a new cache agent.
 		cache_agent_obj = attach_cache_agent()
 		if cache_agent_obj:
@@ -81,7 +81,7 @@ def long_client_agent(cache_agent_obj, video_id, method, vidNum=5, expID=None):
 		logging.info("[" + client_ID + "]Agens client can not download mpd file for video " + videoName + " from server " + srv_info['srv'] + \
 					"Stop and exit the streaming for methods other than QoE. For qoe methods, get new srv_info!!!")
 
-		if method == "qoe":
+		if method == "qoe" or method == "epsilon":
 			trial_time = 0
 			while (not rsts) and (trial_time < 10):
 				update_qoe(cache_agent_ip, srv_info['srv'], 0, 0.9)
@@ -184,7 +184,7 @@ def long_client_agent(cache_agent_obj, video_id, method, vidNum=5, expID=None):
 			" 3 times. Stop and exit the streaming!!!")
 
 			## Retry to download the chunk
-			if method == "qoe":
+			if method == "qoe" or method == "epsilon":
 				trial_time = 0
 				while (vchunk_sz == 0) and (trial_time < 3):
 					update_qoe(cache_agent_ip, srv_info['srv'], 0, 0.9)
@@ -246,7 +246,7 @@ def long_client_agent(cache_agent_obj, video_id, method, vidNum=5, expID=None):
 		if chunkNext%6 == 0 and chunkNext > 6:
 			mnQoE = averageQoE(srv_qoe_tr)
 			update_qoe(cache_agent_ip, srv_info['srv'], mnQoE, alpha)
-			if method == "qoe":
+			if method == "qoe" or method == "epsilon":
 				new_srv_info = get_srv(cache_agent_ip, video_id, method)
 				if 'ip' in new_srv_info.keys():
 					print "[" + client_ID + "] Selected server for next 6 chunks is :" + srv_info['srv']
