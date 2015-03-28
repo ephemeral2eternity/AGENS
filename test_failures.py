@@ -43,5 +43,7 @@ zipf_cdf = getZipfCDF(N, p)
 vidNum = 1000
 video_id = weighted_choice(zipf_cdf)
 
+print "The client ", client_name, " is streaming using method: ", method, " for the period of ", str(duration*10), " minutes!"
+
 ### Get the server to start streaming
 long_client_agent(cache_agent, video_id, method, vidNum=duration)

@@ -53,7 +53,7 @@ def pingSrvs(candidates):
 # ================================================================================
 def is_alive(cache_agent_ip):
 	url = 'http://%s:8615/video/getSrv?vidID=5&method=qoe'%cache_agent_ip
-	print url
+	print 'Testing if cache agent is alive:', url
 	try:
 		rsp = urllib2.urlopen(url)
 		rsp_headers = rsp.info()
