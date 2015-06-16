@@ -45,7 +45,6 @@ def client_agent(cache_agent_obj, video_id, method, expID=None):
 	srv_info = get_srv(cache_agent_ip, video_id, method)
 
 
-
 	## ==================================================================================================
 	## Cache agent failure handler
 	## ==================================================================================================
@@ -108,8 +107,6 @@ def client_agent(cache_agent_obj, video_id, method, expID=None):
 			reportErrorQoE(client_ID, srv_info['srv'])
 			return
 	### ===========================================================================================================
-
-
 
 	vidLength = int(rsts['mediaDuration'])
 	minBuffer = num(rsts['minBufferTime'])

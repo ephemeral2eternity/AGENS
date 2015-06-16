@@ -21,7 +21,7 @@ def getMyName():
 # Query the list of all cache agents via the centralized monitor server cmu-agens.
 # ================================================================================
 def get_cache_agents():
-	plsrv = '146.148.66.148'
+	plsrv = '104.197.6.6'
 	url = "http://%s:8000/overlay/node/"%plsrv
 	req = urllib2.Request(url)
 	cache_agents = {}
