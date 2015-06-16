@@ -1,5 +1,6 @@
 # AGENS
 The client agent for AGENS system that can be run in Planetlab nodes.
+The QoE based Adaptive Control System described in GlobeCom 2015
 
 ## Main components in AGENS system
 - Server-side controled server selection
