@@ -76,7 +76,7 @@ def qoe_dash(video_id, cache_agent):
             srv_sqs[srv_name] = 5
         else:
             srv_qoes[srv_name] = []
-            srv_sqs[srv_name] = 4
+            srv_sqs[srv_name] = 4.5
 
     ## Select the server to download the video
     if config.qoe_adaptive_params['action'] == "greedy":
