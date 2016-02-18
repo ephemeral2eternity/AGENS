@@ -51,7 +51,7 @@ def qoe_dash(video_id, cache_agent):
     ## Client name and info
     client = str(socket.gethostname())
     cur_ts = time.strftime("%m%d%H%M")
-    client_ID = client + "_" + cur_ts + "_qoedash_" + \
+    client_ID = client + "_" + cur_ts + "_client_" + \
                 config.qoe_model + "_" + \
                 config.qoe_adaptive_params['sqs_learning_method'] + "_" + \
                 config.qoe_adaptive_params['action']
@@ -70,6 +70,7 @@ def qoe_dash(video_id, cache_agent):
     ## Initialize the srv_qoes
     srv_qoes = {}
     srv_sqs = {}
+    srv_sqs_traces = {}
     for srv_name in candidates:
         if candidates[srv_name] == cache_agent:
             srv_qoes[srv_name] = []
@@ -175,6 +176,7 @@ def qoe_dash(video_id, cache_agent):
 
         # print "The selected server and QoE experienced on the server!"
         print srv_sqs, selected_srv
+        srv_sqs_traces[curTS] = copy.deepcopy(srv_sqs)
         if config.qoe_adaptive_params['sqs_learning_method'] == "exp":
             srv_sqs = learn_sqs_exp_method(srv_sqs, qoe_params['alpha'], current_chunk_qoe, selected_srv)
 
@@ -204,6 +206,8 @@ def qoe_dash(video_id, cache_agent):
 
     ## Write out traces after finishing the streaming
     writeTrace(client_ID, client_tr)
+    sqs_trace_id = client_ID + "_sqs"
+    writeTrace(sqs_trace_id, srv_sqs_traces)
 
     ## If tmp path exists, deletes it.
     if os.path.exists(cache_folder):
