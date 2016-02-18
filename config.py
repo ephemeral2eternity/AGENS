@@ -28,7 +28,7 @@ qoe_adaptive_params = dict(
 )
 
 ## Configure the real video name to download
-video_name = "st"
+video_name = "BBB"
 video_folder = "/videos/"
 
 ## File paths
