@@ -13,7 +13,11 @@ def client_agent(given_id=None):
         video_id = given_id
 
     ## Get the cache agent ip
-    cache_agent_name, cache_agent_ip = attach_cache_agent(config.mngt_srv, probeNum=config.rtt_probe_num)
+    if config.cache_agent == None:
+        cache_agent_name, cache_agent_ip = attach_cache_agent(config.mngt_srv, probeNum=config.rtt_probe_num)
+    else:
+        cache_agent_name = config.cache_agent
+        cache_agent_ip = config.cache_agent_ip
 
     print "QoE models used: ", config.qoe_model, "; Server Selection Method: ", config.selection_method
 
@@ -38,4 +42,4 @@ if __name__ == "__main__":
     if len(sys.argv) > 1:
         config.qoe_model = sys.argv[1]
     test_video_id = 34
-    client_agent()
+    client_agent(test_video_id)

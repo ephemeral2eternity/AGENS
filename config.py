@@ -16,7 +16,7 @@ buf_size = 30
 isAdaptive = True
 
 selection_method = "qoe"                    # Options: RTT, HOP, LOAD, RANDOM and QoE according to description in the paper.
-qoe_model = "linear"                        # Option: linear, cascading
+qoe_model = "cascading"                        # Option: linear, cascading
 adaptive_selection_period = 6
 qoe_adaptive_params = dict(
     isClientControl = True,                 # True or False determines if it is the client-side control
@@ -28,18 +28,23 @@ qoe_adaptive_params = dict(
 )
 
 ## Configure the real video name to download
-video_name = "BBB"
+video_name = "st"
 video_folder = "/videos/"
 
 ## File paths
 config_file_path = os.path.dirname(__file__)
-cache_path = config_file_path + '/tmp/'
+cache_path = os.getcwd() + '/tmp/'
+
+## Denoted cache agent
+cache_agent = "cache-02"
+cache_agent_ip = "104.154.23.237"
+
 try:
     os.stat(cache_path)
 except:
     os.mkdir(cache_path)
 
-data_path = config_file_path + '/data/'
+data_path = os.getcwd() + '/dataQoE/'
 try:
     os.stat(data_path)
 except:
