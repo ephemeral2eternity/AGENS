@@ -50,24 +50,24 @@ def computeLinQoE(freezing_time, cur_bw, max_bw):
 
 ## ==================================================================================================
 # Get the average of previous 12 chunk QoEs (1 minute) on a given server
-# @input : srv_qoe_tr --- the per chunk qoe dictionary with the key as the chunk ID
+# @input : qoe_tr --- the per chunk qoe dictionary with the key as the chunk ID
 ## ==================================================================================================
-def averageQoE(srv_qoe_tr, intvl):
+def averageQoE(qoe_tr, intvl):
 	mn_QoE = 0.0
 	curSrvNum = 0
-	if len(srv_qoe_tr) < intvl:
-		for chunk_id in srv_qoe_tr.keys():
+	if len(qoe_tr) < intvl:
+		for chunk_id in qoe_tr.keys():
 			curSrvNum = curSrvNum + 1
-			mn_QoE += srv_qoe_tr[chunk_id]
+			mn_QoE += qoe_tr[chunk_id]
 		
 	else:
 		## Study chunks in the previous 1 minute
-		chunk_ids = sorted(srv_qoe_tr.keys())
+		chunk_ids = sorted(qoe_tr.keys())
 		last_minute_chunk_ids = chunk_ids[-intvl:]
 		print "Average QoE for chunk ids: ", str(last_minute_chunk_ids)
 		for chunk_id in last_minute_chunk_ids:
 			curSrvNum = curSrvNum + 1
-			mn_QoE += srv_qoe_tr[chunk_id]
+			mn_QoE += qoe_tr[chunk_id]
 	mn_QoE = mn_QoE / float(curSrvNum)
 	return mn_QoE
 
@@ -78,8 +78,8 @@ def averageQoE(srv_qoe_tr, intvl):
 #		   minuteQoE --- the average chunk QoE in previous 1 minute
 #		   alpha --- the weight given to the updated QoE
 ## ==================================================================================================
-def update_qoe(cache_agent_ip, selected_srv, minuteQoE, alpha):
-	url = "http://%s:8615/qoe/update?srv=%s&qoe=%.4f&alpha=%.2f" % (cache_agent_ip, selected_srv, minuteQoE, alpha)
+def update_qoe(cache_agent_ip, selected_srv, minuteQoE, alpha=0.1, win=10):
+	url = "http://%s:8615/qoe/update?srv=%s&qoe=%.4f&alpha=%.2f&win=%d" % (cache_agent_ip, selected_srv, minuteQoE, alpha, win)
 	# print url
 	try:
 		rsp = urllib2.urlopen(url)

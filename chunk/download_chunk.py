@@ -1,4 +1,5 @@
 import os
+import time
 import urllib2, socket, urlparse, httplib
 
 def download_chunk(server_addr, vidName, chunk_name):
@@ -50,3 +51,24 @@ def download_chunk(server_addr, vidName, chunk_name):
 		rsp_code = 'Unknown'
 
 	return (file_size, srv_ip_addr, rsp_code)
+
+
+### ===========================================================================================================
+## Chunk request failure handler
+### ===========================================================================================================
+def ft_download_chunk(retry_srv, retry_num, video_name, chunk_id):
+	vchunk_sz = 0
+	error_num = 0
+	rsp_code = 'Unknown'
+	error_codes = {}
+	chunk_srv_ip= retry_srv
+	while (vchunk_sz == 0) and (error_num < retry_num):
+		# Try to download again the chunk
+		(vchunk_sz, chunk_srv_ip, rsp_code) = download_chunk(retry_srv, video_name, chunk_id)
+		if not rsp_code.startswith('2'):
+			error_codes[time.time()] = rsp_code
+			print rsp_code
+
+		error_num = error_num + 1
+
+	return (vchunk_sz, chunk_srv_ip, error_codes)

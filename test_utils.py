@@ -2,7 +2,7 @@
 # Chen Wang, Feb. 18, 2014
 # chenw@andrew.cmu.edu
 ## test_utils.py
-
+import config
 import random
 import time
 import math
@@ -48,13 +48,25 @@ def weighted_choice(dist_pdf):
 		if rnd < total:
 			return i
 
+
+## ========================================================================
+# Select a video id according to defined zipf distribution
+# @return: video_id : the id denotes the video content
+## ========================================================================
+def random_select_video(N, p):
+	## Select the video id to download
+	zipf_cdf = getZipfCDF(N, p)
+	video_id = weighted_choice(zipf_cdf)
+	return video_id
+
+
 ## ======================================================================== 
 # Update the client's cache agent to cmu-agens
 # @input : client ---- The client name
 #		   cache_agent ---- The cache agent the client is connecting to
 ## ========================================================================
 def update_cache_agent(client, cache_agent):
-	update_url = "http://146.148.66.148:8000/cacheagent/add?client=%s&cache_agent=%s" % (client, cache_agent)
+	update_url = "http://%s:8000/cacheagent/add?client=%s&cache_agent=%s" % (config.mngt_srv, client, cache_agent)
 	try:
 		rsp = urllib2.urlopen(update_url)
 		print "Update cache agent for client :", client, " and its cache agent is ", cache_agent, " successfully!"
