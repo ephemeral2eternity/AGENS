@@ -40,6 +40,16 @@ def client_agent(given_id=None):
 if __name__ == "__main__":
     ## QoE Comparison Experiments
     if len(sys.argv) > 1:
-        config.qoe_model = sys.argv[1]
-    test_video_id = 34
-    client_agent(test_video_id)
+        # config.qoe_model = sys.argv[1]
+        if sys.argv[1] == "client":
+            config.qoe_adaptive_params['isClientControl'] = True
+        elif sys.argv[1] == "server":
+            config.qoe_adaptive_params['isClientControl'] = False
+        elif sys.argv[1] == "dash":
+            config.isAdaptive = False
+            config.selection_method = "rtt"
+        elif sys.argv[1] in ["rtt", "hop", "random", "load"]:
+            config.selection_method = sys.argv[1]
+    # test_video_id = 34
+    # client_agent(test_video_id)
+    client_agent()

@@ -26,7 +26,14 @@ def adaptive_dash(video_id, cache_agent):
     ## Client name and info
     client = str(socket.gethostname())
     cur_ts = time.strftime("%m%d%H%M")
-    client_ID = client + "_" + cur_ts + "_" + method + "_adaptive"
+    if method == 'qoe':
+        client_ID = client + "_" + cur_ts + "_server_" + method + "_" +\
+                    config.qoe_model + "_" + \
+                    config.qoe_adaptive_params['sqs_learning_method'] + "_" + \
+                    config.qoe_adaptive_params['action']
+    else:
+        client_ID = client + "_" + cur_ts + "_server_" + method + "_" +\
+                    "period" + str(config.adaptive_selection_period)
 
     ## Select the server to download the initial chunk
     server, server_name, cache_agent = ft_server_side_selection(config.mngt_srv, cache_agent, video_id,
