@@ -39,6 +39,7 @@ def client_agent(given_id=None):
 
 if __name__ == "__main__":
     ## QoE Comparison Experiments
+    '''
     if len(sys.argv) > 1:
         # config.qoe_model = sys.argv[1]
         if sys.argv[1] == "client":
@@ -50,6 +51,14 @@ if __name__ == "__main__":
             config.selection_method = "rtt"
         elif sys.argv[1] in ["rtt", "hop", "random", "load"]:
             config.selection_method = sys.argv[1]
-    # test_video_id = 34
-    # client_agent(test_video_id)
+    #
     client_agent()
+    '''
+    if len(sys.argv) > 1:
+        config.qoe_adaptive_params['sqs_learning_method'] = sys.argv[1]
+
+    if len(sys.argv) > 2:
+        config.qoe_adaptive_params['action'] = sys.argv[2]
+
+    test_video_id = 34
+    client_agent(test_video_id)

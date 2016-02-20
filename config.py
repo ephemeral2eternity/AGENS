@@ -19,9 +19,9 @@ selection_method = "qoe"                    # Options: RTT, HOP, LOAD, RANDOM an
 qoe_model = "cascading"                        # Option: linear, cascading
 adaptive_selection_period = 6
 qoe_adaptive_params = dict(
-    isClientControl = False,                 # True or False determines if it is the client-side control
+    isClientControl = True,                 # True or False determines if it is the client-side control
     sqs_learning_method = "exp",            # Options: exp, ave
-    alpha = 0.1,                            # alpha is used in exp_ave
+    alpha = 0.2,                            # alpha is used in exp_ave
     win = 6,                                # window_size is effective for window average method
     action = "greedy",                      # Options: greedy, epsilon,
     epsilon = 0.1                           # Will only be effective if selection_method is epsilon and isClientControl is true.
@@ -36,9 +36,10 @@ config_file_path = os.path.dirname(__file__)
 cache_path = os.getcwd() + '/tmp/'
 
 ## Denoted cache agent
-#cache_agent = "cache-02"
-#cache_agent_ip = "104.154.23.237"
-cache_agent = None
+cache_agent = "cache-02"
+cache_agent_ip = "104.154.23.237"
+# cache_agent = None
+# cache_agent_ip = ""
 
 try:
     os.stat(cache_path)

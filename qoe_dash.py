@@ -19,10 +19,12 @@ def learn_sqs_ave_method(srv_sqs, srv_qoes, window):
     for srv in srv_qoes.keys():
         if len(srv_qoes[srv]) == 0:
             pass
-        elif len(srv_qoes[srv]) < window:
-            srv_sqs[srv] = sum(srv_qoes[srv])/float(len(srv_qoes[srv]))
         else:
-            srv_sqs[srv] = sum(srv_qoes[srv][-window:])/float(window)
+            srv_sqs[srv] = sum(srv_qoes[srv])/float(len(srv_qoes[srv]))
+        # elif len(srv_qoes[srv]) < window:
+        #    srv_sqs[srv] = sum(srv_qoes[srv])/float(len(srv_qoes[srv]))
+        #else:
+        #    srv_sqs[srv] = sum(srv_qoes[srv][-window:])/float(window)
     return srv_sqs
 
 
@@ -87,6 +89,8 @@ def qoe_dash(video_id, cache_agent):
     else:
         print "The input of qoe_adaptive_params.action in config.py is not recognized, using the default greedy action."
         selected_srv = greedy_selection(srv_sqs, candidates)
+    pre_selected_srv = selected_srv
+    changeServer = False
 
     server = candidates[selected_srv]
     server_url = server + video_folder
@@ -121,6 +125,9 @@ def qoe_dash(video_id, cache_agent):
     ## ==================================================================================================
     while (video_obj['nextChunk'] * video_obj['chunkLen'] < video_obj['vidLength']) :
         nextRep = findRep(video_obj['sortedVids'], est_bw, curBuffer, video_obj['minBuffer'])
+        if changeServer:
+            nextRep = increaseRep(video_obj['sortedVids'], nextRep)
+
         vidChunk = video_obj['reps'][nextRep]['name'].replace('$Number$', str(video_obj['nextChunk']))
         loadTS = time.time()
         print "The selected server for chunk ", video_obj['nextChunk'], " is ", selected_srv
@@ -171,20 +178,22 @@ def qoe_dash(video_id, cache_agent):
         else:
             current_chunk_qoe = chunk_cascading_QoE
 
-        srv_qoes[selected_srv].append(current_chunk_qoe)
-        qoe_tr[video_obj['nextChunk']] = current_chunk_qoe
-
-        # print "The selected server and QoE experienced on the server!"
-        print srv_sqs, selected_srv
-        srv_sqs_traces[curTS] = copy.deepcopy(srv_sqs)
-        if config.qoe_adaptive_params['sqs_learning_method'] == "exp":
-            srv_sqs = learn_sqs_exp_method(srv_sqs, qoe_params['alpha'], current_chunk_qoe, selected_srv)
-
-        if config.qoe_adaptive_params['sqs_learning_method'] == "ave":
-            srv_sqs = learn_sqs_ave_method(srv_sqs, srv_qoes, config.qoe_adaptive_params['win'])
-
         # Update the average heart_beat_period to the cache agent
-        if video_obj['nextChunk'] > adaptive_selection_period - 1:
+        # if video_obj['nextChunk'] > adaptive_selection_period - 1:
+
+        if video_obj['nextChunk'] > 3:
+            srv_qoes[selected_srv].append(current_chunk_qoe)
+            qoe_tr[video_obj['nextChunk']] = current_chunk_qoe
+
+            # print "The selected server and QoE experienced on the server!"
+            print srv_sqs, selected_srv
+            srv_sqs_traces[curTS] = copy.deepcopy(srv_sqs)
+            if config.qoe_adaptive_params['sqs_learning_method'] == "exp":
+                srv_sqs = learn_sqs_exp_method(srv_sqs, qoe_params['alpha'], current_chunk_qoe, selected_srv)
+
+            if config.qoe_adaptive_params['sqs_learning_method'] == "ave":
+                srv_sqs = learn_sqs_ave_method(srv_sqs, srv_qoes, config.qoe_adaptive_params['win'])
+
             print srv_sqs
             ## Select the server to download the video
             if config.qoe_adaptive_params['action'] == "greedy":
@@ -195,6 +204,11 @@ def qoe_dash(video_id, cache_agent):
                 print "The input of qoe_adaptive_params.action in config.py is not recognized, " \
                       "using the default greedy action."
                 selected_srv = greedy_selection(srv_sqs, candidates)
+            if pre_selected_srv != selected_srv:
+                pre_selected_srv = selected_srv
+                changeServer = True
+            else:
+                changeServer = False
 
         # Update iteration information
         curBuffer = curBuffer + video_obj['chunkLen']
